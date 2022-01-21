@@ -4,7 +4,7 @@ from skimage import io
 import matplotlib.pyplot as plt
 import skimage.color as col 
 import skimage.filters as fil 
-from main.utils import S_function, process_depth_v0
+from main.utils import S_function, process_depth_v0, process_depth_v1
 
 PATH = 'raw-890/'
 
@@ -49,4 +49,28 @@ def full_filter(img, sigma=0.3, lmbd=0.03, a1=1e-3, a2=0.995):
     filt_img = img.copy()
     first_color_correction(filt_img, a1, a2)
     second_correction(filt_img, sigma, lmbd)
+    return filt_img
+
+
+def second_correction_v1(img,sigma=0.3, lmbd = 0.03):
+    """Applies the second transformation by looking at the image in the LAB space. IN PLACE"""
+    img = col.rgb2lab(img)
+    L = img[:,:,0]
+
+    L_low = fil.gaussian(L, sigma).astype('int32')
+    L_high = L - L_low
+    
+    L_high = S_function(L_high, lmbd).astype('int32')
+    process_depth_v1(L_low)
+
+    img[:,:,0] = np.clip(((L_low+L_high) * (L_low>=0) * (255 * ((L_low>255) + (L_high > 255)) + 1)),0,255)
+    img = col.lab2rgb(img)
+
+
+
+def full_filterv1(img, sigma=0.3, lmbd=0.03, a1=1e-3, a2=0.995):
+    """Filters an image."""
+    filt_img = img.copy()
+    first_color_correction(filt_img, a1, a2)
+    second_correction_v1(filt_img, sigma, lmbd)
     return filt_img
