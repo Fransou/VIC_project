@@ -28,7 +28,7 @@ def first_color_correction(img, a1=0.001, a2=0.995):
 
 
 
-def second_correction(img,sigma=0.3, lmbd = 0.03):
+def second_correction(img,sigma=0.3, lmbd = 0.01):
     """Applies the second transformation by looking at the image in the LAB space. IN PLACE"""
     img = col.rgb2lab(img)
     L = img[:,:,0]
@@ -45,14 +45,14 @@ def second_correction(img,sigma=0.3, lmbd = 0.03):
 
 
 
-def full_filter(img, sigma=0.3, lmbd=0.03, a1=1e-3, a2=0.995):
+def full_filter(img, sigma=0.3, lmbd=0.01, a1=1e-3, a2=0.995):
     """Filters an image."""
     filt_img = img.copy()
     first_color_correction(filt_img, a1, a2)
     return second_correction(filt_img, sigma, lmbd)
 
 
-def second_correction_v1(img,sigma=0.3, lmbd = 0.03):
+def second_correction_v1(img,sigma=0.7, lmbd = 0.01, n=4, window=7, sp=10, sc=2):
     """Applies the second transformation by looking at the image in the LAB space. """
     img = col.rgb2lab(img)
     L = img[:,:,0]
@@ -62,15 +62,15 @@ def second_correction_v1(img,sigma=0.3, lmbd = 0.03):
     
     L_high = S_function(L_high, lmbd).astype('int32')
     
-    process_depth_v1(L_low)
+    process_depth_v1(L_low,n=n, window=window, sp=sp, sc=sc)
 
     img[:,:,0] = np.clip(((L_low+L_high) * (L_low>=0) * (255 * ((L_low>255) + (L_high > 255)) + 1)),0,255)
     img = col.lab2rgb(img)
     return img
 
 
-def full_filterv1(img, sigma=0.3, lmbd=0.03, a1=1e-3, a2=0.995):
+def full_filterv1(img, sigma=0.3, lmbd=0.01, a1=1e-3, a2=0.995, n=4, window=7, sp=10, sc=2):
     """Filters an image."""
     filt_img = img.copy()
     first_color_correction(filt_img, a1, a2)
-    return second_correction_v1(filt_img, sigma, lmbd)
+    return second_correction_v1(filt_img, sigma, lmbd, n , window, sp, sc)
