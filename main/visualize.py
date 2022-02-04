@@ -1,7 +1,8 @@
 import numpy as np
 import skimage.filters as fil 
-import skimage.color as col
 
+import skimage.color as col 
+from main.utils import *
 
 def visualize_depth_v0(img, sigma = 0.3):
     """Applies the histogram equalization to the background and foreground as described in the 
@@ -34,3 +35,16 @@ def visualize_depth_v0(img, sigma = 0.3):
     T_opt = np.nanargmax(T_v)
 
     return L_low>T_opt
+
+
+def visualize_depth_v1(img,window =7, n=4, sigma=0.3):
+    img = col.rgb2lab(img)
+    L = img[:,:,0]
+
+    L_low = fil.gaussian(L, sigma).astype('int32')
+
+    B = compute_B(L_low,n)
+    t = compute_t_map(B, window)
+    t = compute_final_map(t)
+
+    return t

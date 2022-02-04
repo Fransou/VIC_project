@@ -1,7 +1,9 @@
 from skimage.restoration import denoise_bilateral
 from skimage.morphology import area_closing
 import numpy as np
-import skimage.filters as fil
+
+import skimage.filters as fil 
+import matplotlib.pyplot as plt
 
 
 def S_function(X, lmbd):
@@ -84,42 +86,45 @@ def compute_t_map(B, window=7):
             t[i - neigh, j - neigh] = np.max(B[i - neigh:i + neigh, j - neigh:j + neigh])
     return t
 
-
-def compute_final_map(t):
+def compute_final_map(t, sp=10, sc=2):
     t_f = area_closing(t, 256, connectivity=2)
-    t_ff = denoise_bilateral(t_f, sigma_spatial=2, sigma_color=2)
+    t_ff = denoise_bilateral(t_f, sigma_spatial=sp, sigma_color=sc)
     return t_ff
 
 
 def process_depth_v1(L_low, n=4, window=7):
     B = compute_B(L_low, n)
+
     t = compute_t_map(B, window)
-    t = compute_final_map(t)
+    t = compute_final_map(t, sp, sc)
 
     T_v = []
     for T in np.linspace(np.min(t), np.max(t), 100):
         T_v.append(sum_var(t, T))
-
     T_opt = np.linspace(np.min(t), np.max(t), 100)[np.argmax(T_v)]
 
-    L_low_b = L_low * (t <= T_opt)
-    L_low_f = L_low * (t > T_opt)
+    
+    L_low_b = L_low * (t<=T_opt).astype('int32')
+    L_low_f = L_low * (t>T_opt).astype('int32')
+
 
     I0b = np.min(L_low_b)
     I1b = np.max(L_low_b)
-    I0f = np.max(L_low_f)
+    I0f = np.min(L_low_f)
     I1f = np.max(L_low_f)
 
     n_D = np.sum(t <= T_opt)
     n_F = np.sum(t > T_opt)
 
-    I_n = [np.sum(L_low_b <= i) for i in range(255)]
-    I_n_f = [np.sum(L_low_f <= i) for i in range(255)]
+    I_n = [np.sum(L_low_b <= i) - n_F for i in range(255)]
+    I_n_f = [np.sum(L_low_f <= i) - n_D for i in range(255)]
+    
 
     def equalize_background(pixel):
         return I0b + (I1b - I0b) * I_n[pixel] / n_D
 
     def equalize_foreground(pixel):
+        I = I0f + (I1f - I0f) * I_n_f[pixel] / n_F
         return I0f + (I1f - I0f) * I_n_f[pixel] / n_F
 
     for i in range(L_low.shape[0]):
