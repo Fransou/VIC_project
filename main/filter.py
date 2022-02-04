@@ -44,6 +44,29 @@ def second_correction(img,sigma=0.3, lmbd = 0.03):
     return img
 
 
+def second_correction_fourier(img, lmbd=0.03):
+    """Applies the second transformation with a Fourier Filter"""
+    img = col.rgb2lab(img)
+    L = img[:, :, 0]
+
+    filter_in = circle_in = draw_circle(shape=img.shape[:2], diameter=200)
+    filter_out = ~circle_in
+
+    img_low = get_filtered_img(filter_in, L)
+    img_high = get_filtered_img(filter_out, L)
+    process_depth_v0(img_low)
+    img[:, :, 0] = np.clip(((img_low + img_high) * (img_low >= 0) * (255 * ((img_low > 255) + (img_high > 255)) + 1)),
+                           0, 255)
+    img = col.lab2rgb(img)
+    return img
+
+
+def full_filter_fourier(img, a1=1e-3, a2=0.995):
+    """Filters an image."""
+    filt_img = img.copy()
+    first_color_correction(filt_img, a1, a2)
+    return second_correction_fourier(filt_img)
+
 
 def full_filter(img, sigma=0.3, lmbd=0.03, a1=1e-3, a2=0.995):
     """Filters an image."""

@@ -139,4 +139,62 @@ def process_depth_v1(L_low,n=4, window=7):
                 L_low[i,j] = equalize_foreground(L_low[i,j])
 
 
+def fft_from_img(img):
+    return np.fft.fftshift(np.fft.fft2(img))
 
+
+def reconstruct_from_fft(img_fft):
+    img = abs(np.fft.ifft2(img_fft))
+    return img.clip(0, 255)
+
+
+def draw_circle(shape, diameter):
+    """
+    Input:
+    shape    : tuple (height, width)
+    diameter : scalar
+
+    Output:
+    np.array of shape  that says True within a circle with diamiter =  around center
+    """
+    assert len(shape) == 2
+    filter = np.zeros(shape, dtype=np.bool)
+    center = np.array(filter.shape) / 2.0
+
+    for iy in range(shape[0]):
+        for ix in range(shape[1]):
+            filter[iy, ix] = (iy - center[0]) ** 2 + (ix - center[1]) ** 2 < diameter ** 2
+    return filter
+
+
+def get_filtered_channel(filter, fft_img_channel):
+    filtered = np.zeros(fft_img_channel.shape[:2], dtype=complex)
+    filtered[filter] = fft_img_channel[filter]
+    return filtered
+
+
+def get_filtered_img(filter, img):
+
+    fft_img = fft_from_img(img)
+    filtered = get_filtered_channel(filter, fft_img)
+    img_reco = reconstruct_from_fft(filtered)
+    return img_reco.astype(int)
+
+
+def get_filtered_img_test(filter, img):
+    fft_img_channel_0 = fft_from_img(img[:, :, 0])
+    fft_img_channel_1 = fft_from_img(img[:, :, 1])
+    fft_img_channel_2 = fft_from_img(img[:, :, 2])
+
+    filtered_red_channel = get_filtered_channel(filter, fft_img_channel_0)
+    filtered_green_channel = get_filtered_channel(filter, fft_img_channel_1)
+    filtered_blue_channel = get_filtered_channel(filter, fft_img_channel_2)
+
+    red_channel = reconstruct_from_fft(filtered_red_channel)
+    green_channel = reconstruct_from_fft(filtered_green_channel)
+    blue_channel = reconstruct_from_fft(filtered_blue_channel)
+
+    filtered_img = np.dstack([red_channel.astype(int),
+                              green_channel.astype(int),
+                              blue_channel.astype(int)])
+    return filtered_img
