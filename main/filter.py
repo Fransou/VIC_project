@@ -3,7 +3,7 @@ import numpy as np
 
 import skimage.color as col 
 import skimage.filters as fil 
-from main.utils import S_function, process_depth_v0, process_depth_v1, process_depth_v2
+from main.utils import S_function, process_depth_v0, process_depth_v1, process_depth_v2, draw_circle, get_filtered_img
 
 
 PATH = 'raw-890/'

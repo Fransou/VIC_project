@@ -93,7 +93,7 @@ def compute_final_map(t, sp=10, sc=2):
     return t_ff
 
 
-def process_depth_v1(L_low, n=4, window=7):
+def process_depth_v1(L_low, n=4, window=7, sp = 10, sc= 2):
     B = compute_B(L_low, n)
 
     t = compute_t_map(B, window)
