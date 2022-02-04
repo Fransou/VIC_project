@@ -3,6 +3,7 @@ from skimage.morphology import area_closing
 import numpy as np
 import skimage.filters as fil 
 import matplotlib.pyplot as plt
+from torch import equal
 
 
 def S_function(X,lmbd):
@@ -123,19 +124,27 @@ def process_depth_v1(L_low,n=4, window=7, sp=10, sc=2):
     I_n_f = [np.sum(L_low_f <= i) - n_D for i in range(255)]
     
 
-    def equalize_background(pixel):
-        return I0b + (I1b - I0b) * I_n[pixel] / n_D
+    def equalize(pixel, I0, I1, I_n, n_D):
+        return I0 + (I1 - I0) * I_n[pixel] / n_D
     
-    def equalize_foreground(pixel):
-        I = I0f + (I1f - I0f) * I_n_f[pixel] / n_F
-        return I0f + (I1f - I0f) * I_n_f[pixel] / n_F
 
     for i in range(L_low.shape[0]):
         for j in range(L_low.shape[1]):
             if t[i,j]<=T_opt:
-                L_low[i,j] = equalize_background(L_low[i,j])
+                L_low[i,j] = equalize(L_low[i,j], I0b, I1b, I_n, n_D)
             else:
-                L_low[i,j] = equalize_foreground(L_low[i,j])
+                L_low[i,j] = equalize(L_low[i,j], I0f, I1f, I_n_f, n_F)
+
+
+
+
+def process_depth_v2(L_low,n=4, window=7, sp=10, sc=2):
+    B = compute_B(L_low,n)
+    t = compute_t_map(B, window)
+    t = compute_final_map(t, sp, sc)
+
+    L_low = L_low/fil.gaussian(np.maximum(t, 0.3),1)
+    L_low = L_low/np.max(L_low)
 
 
 
